@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Diesel Fuel Calculator</title>
+<style>
+body{font-family:Arial;margin:30px;background:#f5f7fb}
+.box{max-width:600px;background:#fff;padding:20px;border-radius:10px}
+input,button{padding:10px;font-size:16px}
+button{cursor:pointer}
+.out{margin-top:15px;background:#eef2ff;padding:15px;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="box">
+<h2>Diesel Fuel by Inches</h2>
+<p>Enter inches on stick (6–36):</p>
+<input id="i" placeholder="18.5">
+<button onclick="c()">Calculate</button>
+<div id="o" class="out"></div>
+</div>
+
+<script>
+const FULL=600;
+const T=[[36,600],[35,584],[34,568],[33,552],[32,536],[31,520],[30,504],[29,488],
+[28,475],[27,461],[26,458],[25,449],[24,415],[23,389],[22,370.8],[21,352.6],
+[20,334.4],[19,316.2],[18,298],[17,279.8],[16,261.6],[15,243.4],[14,225.2],
+[13,207.1],[12,188.9],[11,180.1],[10,171.3],[9,153.1],[8,135],[7,116.9],[6,98.7]];
+
+function g(x){
+ x=Math.max(6,Math.min(36,x));
+ for(let j=0;j<T.length-1;j++){
+  let a=T[j],b=T[j+1];
+  if(x<=a[0]&&x>=b[0]){
+   let t=(x-b[0])/(a[0]-b[0]);
+   return b[1]+t*(a[1]-b[1]);
+  }
+ }
+ return T[T.length-1][1];
+}
+function c(){
+ let v=parseFloat(document.getElementById("i").value);
+ if(isNaN(v)){o.innerText="Enter a number";return;}
+ let gal=g(v);
+ o.innerText=
+ "Fuel available: "+gal.toFixed(1)+" gal\n"+
+ "Fuel to fill: "+(FULL-gal).toFixed(1)+" gal";
+}
+</script>
+</body>
+</html>
