@@ -1,51 +1,179 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Diesel Fuel Calculator</title>
-<style>
-body{font-family:Arial;margin:30px;background:#f5f7fb}
-.box{max-width:600px;background:#fff;padding:20px;border-radius:10px}
-input,button{padding:10px;font-size:16px}
-button{cursor:pointer}
-.out{margin-top:15px;background:#eef2ff;padding:15px;border-radius:8px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Diesel Inches → Gallons</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #f6f7f9; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 20px; }
+    .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .muted { color: #666; font-size: 14px; margin-bottom: 14px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    input { width: 100%; font-size: 18px; padding: 12px 12px; border-radius: 10px; border: 1px solid #cfd6df; }
+    button { font-size: 16px; padding: 12px 14px; border-radius: 10px; border: 0; cursor: pointer; background: #111; color: #fff; }
+    button:active { transform: translateY(1px); }
+    .out { margin-top: 16px; display: grid; gap: 10px; }
+    .tile { background: #f2f4f7; border-radius: 12px; padding: 12px; }
+    .label { font-size: 13px; color: #555; }
+    .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+    .note { margin-top: 10px; font-size: 13px; color: #555; }
+    .err { color: #b00020; font-weight: 600; }
+    .small { font-size: 12px; color:#666; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px){ .row { grid-template-columns: 1fr; } .grid2{ grid-template-columns: 1fr; } button{ width:100%; } }
+  </style>
 </head>
 <body>
-<div class="box">
-<h2>Diesel Fuel by Inches</h2>
-<p>Enter inches on stick (6–36):</p>
-<input id="i" placeholder="18.5">
-<button onclick="c()">Calculate</button>
-<div id="o" class="out"></div>
-</div>
+  <div class="wrap">
+    <div class="card">
+      <h1>Diesel Tank Calculator</h1>
+      <div class="muted">Enter your stick reading (inches). You’ll get gallons on board + gallons to fill to full (600 gal).</div>
+
+      <div class="row">
+        <input id="inches" inputmode="decimal" placeholder='Example: 23 or 23.5' />
+        <button id="calc">Calculate</button>
+      </div>
+
+      <div id="msg" class="note"></div>
+
+      <div class="out grid2">
+        <div class="tile">
+          <div class="label">Fuel available (gal)</div>
+          <div class="value" id="avail">—</div>
+          <div class="small" id="availMeta"></div>
+        </div>
+        <div class="tile">
+          <div class="label">Fuel to fill tank (gal)</div>
+          <div class="value" id="fill">—</div>
+          <div class="small" id="fillMeta"></div>
+        </div>
+      </div>
+
+      <div class="note small">
+        Range supported: 6" to 36". Exact inches use the table; decimals are interpolated between inches.
+      </div>
+    </div>
+  </div>
 
 <script>
-const FULL=600;
-const T=[[36,600],[35,584],[34,568],[33,552],[32,536],[31,520],[30,504],[29,488],
-[28,475],[27,461],[26,458],[25,449],[24,415],[23,389],[22,370.8],[21,352.6],
-[20,334.4],[19,316.2],[18,298],[17,279.8],[16,261.6],[15,243.4],[14,225.2],
-[13,207.1],[12,188.9],[11,180.1],[10,171.3],[9,153.1],[8,135],[7,116.9],[6,98.7]];
+/**
+ * Data from your table (6"–36") with Actual vs Estimated.
+ * Full tank = 600 gal at 36".
+ */
+const DATA = [
+  {in:36, gal:600.0, fill:0.0,  src:"Actual"},
+  {in:35, gal:584.0, fill:16.0, src:"Estimated"},
+  {in:34, gal:568.0, fill:32.0, src:"Estimated"},
+  {in:33, gal:552.0, fill:48.0, src:"Estimated"},
+  {in:32, gal:536.0, fill:64.0, src:"Estimated"},
+  {in:31, gal:520.0, fill:80.0, src:"Estimated"},
+  {in:30, gal:504.0, fill:96.0, src:"Estimated"},
+  {in:29, gal:488.0, fill:112.0, src:"Actual"},
+  {in:28, gal:474.5, fill:125.5, src:"Estimated"},
+  {in:27, gal:461.0, fill:139.0, src:"Actual"},
+  {in:26, gal:458.0, fill:142.0, src:"Actual"},
+  {in:25, gal:449.0, fill:151.0, src:"Actual"},
+  {in:24, gal:415.0, fill:185.0, src:"Actual"},
+  {in:23, gal:389.0, fill:211.0, src:"Actual"},
+  {in:22, gal:363.0, fill:237.0, src:"Estimated"},
+  {in:21, gal:337.0, fill:263.0, src:"Estimated"},
+  {in:20, gal:311.0, fill:289.0, src:"Estimated"},
+  {in:19, gal:285.0, fill:315.0, src:"Estimated"},
+  {in:18, gal:259.0, fill:341.0, src:"Estimated"},
+  {in:17, gal:233.0, fill:367.0, src:"Estimated"},
+  {in:16, gal:207.0, fill:393.0, src:"Estimated"},
+  {in:15, gal:181.0, fill:419.0, src:"Estimated"},
+  {in:14, gal:155.0, fill:445.0, src:"Estimated"},
+  {in:13, gal:129.0, fill:471.0, src:"Estimated"},
+  {in:12, gal:103.0, fill:497.0, src:"Estimated"},
+  {in:11, gal:122.0, fill:478.0, src:"Actual"},
+  {in:10, gal:140.0, fill:460.0, src:"Actual"},
+  {in:9,  gal:158.0, fill:442.0, src:"Actual"},
+  {in:8,  gal:135.0, fill:465.0, src:"Actual"},
+  {in:7,  gal:116.9, fill:483.1, src:"Estimated"},
+  {in:6,  gal:98.7,  fill:501.3, src:"Estimated"},
+];
 
-function g(x){
- x=Math.max(6,Math.min(36,x));
- for(let j=0;j<T.length-1;j++){
-  let a=T[j],b=T[j+1];
-  if(x<=a[0]&&x>=b[0]){
-   let t=(x-b[0])/(a[0]-b[0]);
-   return b[1]+t*(a[1]-b[1]);
+// Build lookup maps
+const byInch = new Map(DATA.map(d => [d.in, d]));
+const inchesList = DATA.map(d => d.in).sort((a,b)=>a-b);
+
+function lerp(a,b,t){ return a + (b-a)*t; }
+function fmt(n){ return (Math.round(n*10)/10).toFixed(1); }
+
+function calculate(inches){
+  if (Number.isNaN(inches)) return {error:"Please enter a number (like 23 or 23.5)."};
+  if (inches < 6 || inches > 36) return {error:'Out of range. Use 6" to 36".'};
+
+  // Exact integer match
+  const whole = Math.round(inches);
+  if (Math.abs(inches - whole) < 1e-9 && byInch.has(whole)){
+    const d = byInch.get(whole);
+    return {
+      gal: d.gal, fill: d.fill,
+      meta: `Exact table value (${d.src}).`,
+      srcA: d.src, srcB: d.src
+    };
   }
- }
- return T[T.length-1][1];
+
+  // Find bounding inches for interpolation
+  const lo = Math.floor(inches);
+  const hi = Math.ceil(inches);
+
+  // Safety: if user enters something like 23.0, still treat as exact if available
+  if (byInch.has(lo) && Math.abs(inches - lo) < 1e-9){
+    const d = byInch.get(lo);
+    return { gal:d.gal, fill:d.fill, meta:`Exact table value (${d.src}).`, srcA:d.src, srcB:d.src };
+  }
+
+  const dLo = byInch.get(lo);
+  const dHi = byInch.get(hi);
+
+  // If somehow missing (shouldn't be with full 6–36 dataset), fail gracefully
+  if (!dLo || !dHi) return {error:"Table data missing for that range."};
+
+  const t = (inches - lo) / (hi - lo);
+  const gal = lerp(dLo.gal, dHi.gal, t);
+  const fill = lerp(dLo.fill, dHi.fill, t);
+
+  return {
+    gal, fill,
+    meta: `Interpolated between ${lo}" (${dLo.src}) and ${hi}" (${dHi.src}).`,
+    srcA: dLo.src, srcB: dHi.src
+  };
 }
-function c(){
- let v=parseFloat(document.getElementById("i").value);
- if(isNaN(v)){o.innerText="Enter a number";return;}
- let gal=g(v);
- o.innerText=
- "Fuel available: "+gal.toFixed(1)+" gal\n"+
- "Fuel to fill: "+(FULL-gal).toFixed(1)+" gal";
+
+function run(){
+  const v = document.getElementById("inches").value.trim().replace(",", ".");
+  const inches = parseFloat(v);
+  const msg = document.getElementById("msg");
+  const avail = document.getElementById("avail");
+  const fill = document.getElementById("fill");
+  const availMeta = document.getElementById("availMeta");
+  const fillMeta = document.getElementById("fillMeta");
+
+  const r = calculate(inches);
+  if (r.error){
+    msg.innerHTML = `<span class="err">${r.error}</span>`;
+    avail.textContent = "—";
+    fill.textContent = "—";
+    availMeta.textContent = "";
+    fillMeta.textContent = "";
+    return;
+  }
+
+  msg.textContent = r.meta;
+  avail.textContent = fmt(r.gal);
+  fill.textContent = fmt(r.fill);
+  availMeta.textContent = "";
+  fillMeta.textContent = "";
 }
+
+document.getElementById("calc").addEventListener("click", run);
+document.getElementById("inches").addEventListener("keydown", (e)=>{ if(e.key==="Enter") run(); });
 </script>
 </body>
 </html>
